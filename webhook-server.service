@@ -1,0 +1,16 @@
+[Unit]
+Description=GitHub Webhook Server
+After=network.target
+
+[Service]
+Type=exec
+User=vlad
+Group=vlad
+WorkingDirectory=/home/vlad/catty-reminders-app
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/vlad/catty-reminders-app/venv/bin
+ExecStart=/home/vlad/catty-reminders-app/venv/bin/uvicorn webhook_server:app --host 0.0.0.0 --port 8080
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
