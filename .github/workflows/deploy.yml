@@ -17,7 +17,7 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Deploy
+    - name: Deploy via FRP
       run: |
         ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
           set -e
@@ -28,14 +28,8 @@ jobs:
           
           echo "Pulling latest changes..."
           cd /home/vlad/catty-reminders-app
-          
-          git fetch --all
-          
-          echo "Available branches:"
-          git branch -a
-          
-          git checkout github-actions
-          git pull origin github-actions
+          git fetch origin
+          git reset --hard origin/github-actions
           
           echo "Installing dependencies..."
           ./venv/bin/pip install -r requirements.txt
@@ -47,6 +41,7 @@ jobs:
           sleep 3
           if sudo systemctl is-active --quiet catty-app.service; then
             echo "Deployment completed successfully!"
+            echo "App is available at: https://app.volkovvs.course.prafdin.ru"
           else
             echo "Application failed to start"
             sudo systemctl status catty-app.service --no-pager
