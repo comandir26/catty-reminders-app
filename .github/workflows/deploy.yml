@@ -1,0 +1,34 @@
+name: Deployment
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Deploy
+      run: |
+        ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
+          set -e
+          echo "Starting deployment"
+          
+          cd /home/vlad/catty-reminders-app
+          sudo systemctl stop catty-app.service
+          git pull origin main
+          ./venv/bin/pip install -r requirements.txt
+          sudo systemctl start catty-app.service
+          
+          echo "Deployment completed!"
+          echo "App URL: https://app.volkovvs.course.prafdin.ru"
+        '
