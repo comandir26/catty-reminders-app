@@ -35,8 +35,8 @@ jobs:
           ./venv/bin/pip install -r requirements.txt
           
           echo "Starting application service..."
-          sudo systemctl daemon-reload
-          sudo systemctl start catty-app.service
+          sudo systemctl daemon-reload && echo "Daemon-reload successful"
+          sudo systemctl start catty-app.service && echo "Start successful"
           
           sleep 3
           if sudo systemctl is-active --quiet catty-app.service; then
