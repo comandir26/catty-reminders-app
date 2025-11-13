@@ -39,7 +39,7 @@ jobs:
           sudo systemctl start catty-app.service && echo "Start successful"
           
           sleep 3
-          if sudo systemctl is-active --quiet catty-app.service; then
+          if sudo systemctl is-active catty-app.service; then
             echo "Deployment completed successfully!"
             echo "App is available at: https://app.volkovvs.course.prafdin.ru"
           else
