@@ -21,14 +21,30 @@ jobs:
       run: |
         ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
           set -e
-          echo "Starting deployment"
+          echo "Starting deployment via FRP..."
           
+          echo "Stopping application service..."
+          sudo systemctl stop catty-app.service || echo "Service was not running"
+          
+          echo "Pulling latest changes..."
           cd /home/vlad/catty-reminders-app
-          sudo systemctl stop catty-app.service
-          git pull origin main
+          git fetch origin
+          git reset --hard origin/main
+          
+          echo "Installing dependencies..."
           ./venv/bin/pip install -r requirements.txt
+          
+          echo "Starting application service..."
+          sudo systemctl daemon-reload
           sudo systemctl start catty-app.service
           
-          echo "Deployment completed!"
-          echo "App URL: https://app.volkovvs.course.prafdin.ru"
+          sleep 3
+          if sudo systemctl is-active --quiet catty-app.service; then
+            echo "Deployment completed successfully!"
+            echo "App is available at: https://app.volkovvs.course.prafdin.ru"
+          else
+            echo "Application failed to start"
+            sudo systemctl status catty-app.service --no-pager
+            exit 1
+          fi
         '
