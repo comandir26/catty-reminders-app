@@ -29,7 +29,7 @@ jobs:
           echo "Pulling latest changes..."
           cd /home/vlad/catty-reminders-app
           git fetch origin
-          git reset --hard origin/main
+          git reset --hard origin/github-actions
           
           echo "Installing dependencies..."
           ./venv/bin/pip install -r requirements.txt
