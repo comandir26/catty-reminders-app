@@ -23,7 +23,7 @@ jobs:
           set -e
           echo "Starting deployment via FRP..."
           
-          echo "⏹Stopping application service..."
+          echo "Stopping application service..."
           sudo systemctl stop catty-app.service || echo "Service was not running"
           
           echo "Pulling latest changes..."
