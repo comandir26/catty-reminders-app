@@ -23,13 +23,19 @@ jobs:
           set -e
           echo "Starting deployment via FRP..."
           
-          echo "Stopping application service..."
+          echo "⏹Stopping application service..."
           sudo systemctl stop catty-app.service || echo "Service was not running"
           
           echo "Pulling latest changes..."
           cd /home/vlad/catty-reminders-app
-          git fetch origin
-          git reset --hard origin/github-actions
+          
+          git fetch --all
+          
+          echo "Available branches:"
+          git branch -a
+          
+          git checkout github-actions
+          git pull origin github-actions
           
           echo "Installing dependencies..."
           ./venv/bin/pip install -r requirements.txt
@@ -41,7 +47,6 @@ jobs:
           sleep 3
           if sudo systemctl is-active --quiet catty-app.service; then
             echo "Deployment completed successfully!"
-            echo "App is available at: https://app.volkovvs.course.prafdin.ru"
           else
             echo "Application failed to start"
             sudo systemctl status catty-app.service --no-pager
