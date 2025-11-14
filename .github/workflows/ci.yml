@@ -23,11 +23,6 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    - name: Start application
-      run: |
-        uvicorn app.main:app --host 0.0.0.0 --port 8181 &
-        sleep 15
-
     - name: Run tests (without UI)
       run: |
         python -m pytest tests/test_unit.py tests/test_api.py -v
