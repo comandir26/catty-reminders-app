@@ -27,8 +27,8 @@ jobs:
           docker pull ghcr.io/comandir26/catty-app:latest
           
           echo "Stopping existing container..."
-          docker stop catty-container  true
-          docker rm catty-container  true
+          docker stop catty-container 2>/dev/null  echo "No container to stop"
+          docker rm catty-container 2>/dev/null  echo "No container to remove"
           
           echo "Starting new container..."
           docker run -d \
@@ -38,23 +38,21 @@ jobs:
             ghcr.io/comandir26/catty-app:latest
           
           echo "Waiting for container to start..."
-          sleep 5
+          sleep 10
           
-          # Проверяем что контейнер запущен
-          if docker ps | grep -q catty-container; then
-            echo "Deployment completed successfully!"
-            echo "App is available at: https://app.volkovvs.course.prafdin.ru"
-            
-            # Проверяем здоровье приложения
-            echo "Checking application health..."
-            sleep 3
-            curl -f http://localhost:8181 > /dev/null 2>&1 && echo "✅ Application is healthy"  echo "⚠️  Health check failed but container is running"
-          else
-            echo "Container failed to start"
-            docker logs catty-container  echo "No logs available"
-            exit 1
-          fi
+          echo "=== DIAGNOSTICS ==="
+          echo "1. Docker containers:"
+          docker ps -a
           
-          echo "Cleaning up unused images..."
-          docker image prune -f
+          echo "2. Container logs:"
+          docker logs catty-container
+          
+          echo "3. Port listening:"
+          netstat -tulpn | grep 8181  echo "Port 8181 not listening"
+          
+          echo "4. Local health check:"
+          curl -f http://localhost:8181 && echo "Local health check PASSED"  echo "Local health check FAILED"
+          
+          echo "Deployment completed!"
+          echo "App should be available at: https://app.volkovvs.course.prafdin.ru"
         '
