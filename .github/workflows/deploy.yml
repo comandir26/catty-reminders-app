@@ -27,8 +27,8 @@ jobs:
           docker pull ghcr.io/comandir26/catty-app:latest
           
           echo "Stopping existing container..."
-          docker stop catty-container  echo "No running container found"
-          docker rm catty-container  echo "No container to remove"
+          docker stop catty-container  true
+          docker rm catty-container  true
           
           echo "Starting new container..."
           docker run -d \
@@ -40,16 +40,21 @@ jobs:
           echo "Waiting for container to start..."
           sleep 5
           
+          # Проверяем что контейнер запущен
           if docker ps | grep -q catty-container; then
             echo "Deployment completed successfully!"
             echo "App is available at: https://app.volkovvs.course.prafdin.ru"
             
             # Проверяем здоровье приложения
             echo "Checking application health..."
-            curl -f https://app.volkovvs.course.prafdin.ru || echo "Health check failed"
+            sleep 3
+            curl -f http://localhost:8181 > /dev/null 2>&1 && echo "✅ Application is healthy"  echo "⚠️  Health check failed but container is running"
           else
             echo "Container failed to start"
-            docker logs catty-container
+            docker logs catty-container  echo "No logs available"
             exit 1
           fi
+          
+          echo "Cleaning up unused images..."
+          docker image prune -f
         '
