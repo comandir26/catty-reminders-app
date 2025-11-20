@@ -20,7 +20,6 @@ jobs:
           set -e
           echo "Starting Docker container deployment..."
           
-          # Логинимся в GitHub Container Registry
           echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
           
           echo "Pulling latest Docker image..."
@@ -30,7 +29,6 @@ jobs:
           docker ps -a
           
           echo "Stopping and removing existing container..."
-          # Удаляем контейнер если существует (принудительно)
           docker rm -f catty-container 2>/dev/null  echo "No container to remove"
           
           echo "Starting new container..."
@@ -43,7 +41,6 @@ jobs:
           echo "Waiting for container to start..."
           sleep 10
           
-          # ДИАГНОСТИКА
           echo "=== DIAGNOSTICS ==="
           echo "1. Docker containers:"
           docker ps -a
@@ -52,14 +49,11 @@ jobs:
           docker logs catty-container
           
           echo "3. Port listening:"
-          netstat -tulpn | grep 8181  echo "Port 8181 not listening"
+          ss -tulpn | grep 8181  echo "Port 8181 not listening"
           
-          echo "4. Process in container:"
-          docker exec catty-container ps aux  echo "Cannot check processes"
+          echo "4. Local health check:"
+          curl -f http://localhost:8181 && echo "Local health check PASSED" || echo "Local health check FAILED"
           
-          echo "5. Local health check:"
-          curl -f http://localhost:8181 && echo "✅ Local health check PASSED"  echo "❌ Local health check FAILED"
-          
-          echo "✅ Deployment completed!"
-          echo "🚀 App should be available at: https://app.volkovvs.course.prafdin.ru"
+          echo "Deployment completed successfully!"
+          echo "App is available at: https://app.volkovvs.course.prafdin.ru"
         '
