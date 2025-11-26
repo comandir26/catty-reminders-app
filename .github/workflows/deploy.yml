@@ -28,7 +28,7 @@ jobs:
           cd /home/vlad/catty-compose
           echo "Directory created: $(pwd)"
         '
-        
+       
         echo "Copying docker-compose.yml..."
         scp -P 2200 -o StrictHostKeyChecking=no docker-compose.yml vlad@course.prafdin.ru:/home/vlad/catty-compose/
         
@@ -50,8 +50,8 @@ jobs:
           echo "Docker version:"
           docker --version
           echo "Docker Compose availability:"
-          docker compose version  echo "Docker Compose plugin not available"
-          docker-compose --version  echo "Docker-compose standalone not available"
+          docker compose version || echo "Docker Compose plugin not available"
+          docker-compose --version || echo "Docker-compose standalone not available"
           
           echo "=== Authentication ==="
           echo "Logging in to GitHub Container Registry..."
@@ -61,7 +61,7 @@ jobs:
           docker pull ghcr.io/comandir26/catty-app:latest
           
           echo "=== Stopping Existing Stack ==="
-          docker compose down  docker-compose down  echo "No stack to stop"
+          docker compose down || docker-compose down || echo "No stack to stop"
           
           echo "=== Starting New Stack ==="
           if docker compose version >/dev/null 2>&1; then
@@ -77,11 +77,11 @@ jobs:
           sleep 30
           
           echo "=== Service Status ==="
-          docker compose ps  docker-compose ps  echo "Cannot check service status"
+          docker compose ps || docker-compose ps || echo "Cannot check service status"
           
           echo "=== Health Checks ==="
           echo "Checking database health..."
-          docker exec catty-db mysqladmin ping -h localhost -u root -prootpassword  echo "Database health check failed"
+          docker exec catty-db mysqladmin ping -h localhost -u root -prootpassword || echo "Database health check failed"
           
           echo "Checking application health..."
           if curl -f http://localhost:8181; then
@@ -89,7 +89,7 @@ jobs:
           else
             echo "Application health check failed"
             echo "Application logs:"
-            docker logs catty-app  echo "Cannot get application logs"
+            docker logs catty-app || echo "Cannot get application logs"
           fi
           
           echo "=== Cleanup ==="
