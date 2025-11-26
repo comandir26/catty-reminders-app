@@ -2,7 +2,7 @@ name: CI Tests and Docker Build
 
 on:
   push:
-    branches: [ github-actions ]
+    branches: [multicontainers]
 
 jobs:
   test:

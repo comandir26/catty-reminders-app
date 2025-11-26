@@ -1,6 +1,8 @@
 name: Deployment
 
 on:
+  push:
+    branches: [multicontainers]
   release:
     types: [published]
 
@@ -9,59 +11,49 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Deploy Docker container
+    - name: Deploy with Docker Compose
       run: |
+        echo "Starting Docker Compose deployment..."
+        
+        scp -P 2200 -o StrictHostKeyChecking=no docker-compose.yml vlad@course.prafdin.ru:/home/vlad/catty-compose/
+        
+        if [ -d "db" ]; then
+          scp -P 2200 -o StrictHostKeyChecking=no -r db/ vlad@course.prafdin.ru:/home/vlad/catty-compose/
+        fi
+        
         ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
           set -e
-          echo "Starting Docker container deployment..."
+          cd /home/vlad/catty-compose
           
+          echo "Логинимся в GitHub Container Registry..."
           echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
           
-          echo "Pulling latest Docker image..."
-          docker pull ghcr.io/comandir26/catty-app:latest
+          echo "Проверяем docker-compose.yml..."
+          cat docker-compose.yml
           
-          echo "Checking existing containers..."
-          docker ps -a
+          echo "Останавливаем существующий стек..."
+          docker-compose down  true
           
-          echo "Removing existing container..."
-          docker rm -f catty-container 2>/dev/null || echo "No container to remove"
+          echo "Запускаем новый стек с Docker Compose..."
+          docker-compose up -d
           
-          echo "Starting new container..."
-          docker run -d \
-            --name catty-container \
-            --restart unless-stopped \
-            -p 8181:8181 \
-            ghcr.io/comandir26/catty-app:latest
+          echo "Ждем запуска сервисов..."
+          sleep 30
           
-          echo "Waiting for container to start..."
-          sleep 10
+          echo "Проверяем статус сервисов..."
+          docker-compose ps
           
-          echo "=== DIAGNOSTICS ==="
-          echo "1. Docker containers:"
-          docker ps -a
+          echo "Проверяем здоровье приложения..."
+          curl -f http://localhost:8181 && echo "Приложение работает"  echo "Проверка здоровья не удалась"
           
-          echo "2. Container logs:"
-          docker logs catty-container
-          
-          echo "3. Port listening check:"
-          if ss -tulpn | grep -q 8181; then
-            echo "Port 8181 is listening"
-          else
-            echo "Port 8181 is NOT listening"
-          fi
-          
-          echo "4. Local health check:"
-          if curl -f http://localhost:8181 > /dev/null 2>&1; then
-            echo "Local health check PASSED"
-          else
-            echo "Local health check FAILED"
-          fi
-          
-          echo "Deployment completed successfully!"
-          echo "App is available at: https://app.volkovvs.course.prafdin.ru"
+          echo "Деплой завершен!"
+          echo "риложение доступно по: https://app.volkovvs.course.prafdin.ru"
         '
