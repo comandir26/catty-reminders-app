@@ -1,0 +1,67 @@
+name: Deployment
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Deploy Docker container
+      run: |
+        ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
+          set -e
+          echo "Starting Docker container deployment..."
+          
+          echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
+          
+          echo "Pulling latest Docker image..."
+          docker pull ghcr.io/comandir26/catty-app:latest
+          
+          echo "Checking existing containers..."
+          docker ps -a
+          
+          echo "Removing existing container..."
+          docker rm -f catty-container 2>/dev/null || echo "No container to remove"
+          
+          echo "Starting new container..."
+          docker run -d \
+            --name catty-container \
+            --restart unless-stopped \
+            -p 8181:8181 \
+            ghcr.io/comandir26/catty-app:latest
+          
+          echo "Waiting for container to start..."
+          sleep 10
+          
+          echo "=== DIAGNOSTICS ==="
+          echo "1. Docker containers:"
+          docker ps -a
+          
+          echo "2. Container logs:"
+          docker logs catty-container
+          
+          echo "3. Port listening check:"
+          if ss -tulpn | grep -q 8181; then
+            echo "Port 8181 is listening"
+          else
+            echo "Port 8181 is NOT listening"
+          fi
+          
+          echo "4. Local health check:"
+          if curl -f http://localhost:8181 > /dev/null 2>&1; then
+            echo "Local health check PASSED"
+          else
+            echo "Local health check FAILED"
+          fi
+          
+          echo "Deployment completed successfully!"
+          echo "App is available at: https://app.volkovvs.course.prafdin.ru"
+        '

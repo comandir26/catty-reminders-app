@@ -1,0 +1,16 @@
+[Unit]
+Description=Catty Reminders App
+After=network.target
+
+[Service]
+Type=exec
+User=vlad
+Group=vlad
+WorkingDirectory=/home/vlad/catty-reminders-app
+Environment=PATH=/home/vlad/catty-reminders-app/venv/bin
+ExecStart=/home/vlad/catty-reminders-app/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8181
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
