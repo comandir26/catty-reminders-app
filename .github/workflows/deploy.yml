@@ -1,8 +1,6 @@
 name: Deployment
 
 on:
-  push:
-    branches: [multicontainers]
   release:
     types: [published]
 
@@ -23,9 +21,19 @@ jobs:
       run: |
         echo "Starting Docker Compose deployment..."
         
+        ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
+          set -e
+          echo "Creating project directory..."
+          mkdir -p /home/vlad/catty-compose
+          cd /home/vlad/catty-compose
+          echo "Directory created: $(pwd)"
+        '
+        
+        echo "Copying docker-compose.yml..."
         scp -P 2200 -o StrictHostKeyChecking=no docker-compose.yml vlad@course.prafdin.ru:/home/vlad/catty-compose/
         
         if [ -d "db" ]; then
+          echo "Copying db directory..."
           scp -P 2200 -o StrictHostKeyChecking=no -r db/ vlad@course.prafdin.ru:/home/vlad/catty-compose/
         fi
         
@@ -33,27 +41,28 @@ jobs:
           set -e
           cd /home/vlad/catty-compose
           
-          echo "Логинимся в GitHub Container Registry..."
+          echo "Current directory: $(pwd)"
+          echo "Files in directory:"
+          ls -la
+          
+          echo "Logging in to GitHub Container Registry..."
           echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
           
-          echo "Проверяем docker-compose.yml..."
-          cat docker-compose.yml
-          
-          echo "Останавливаем существующий стек..."
+          echo "Stopping existing stack..."
           docker-compose down  true
           
-          echo "Запускаем новый стек с Docker Compose..."
+          echo "Starting new stack with Docker Compose..."
           docker-compose up -d
           
-          echo "Ждем запуска сервисов..."
+          echo "Waiting for services to start..."
           sleep 30
           
-          echo "Проверяем статус сервисов..."
+          echo "Checking services status..."
           docker-compose ps
           
-          echo "Проверяем здоровье приложения..."
-          curl -f http://localhost:8181 && echo "Приложение работает"  echo "Проверка здоровья не удалась"
+          echo "Checking application health..."
+          curl -f http://localhost:8181 && echo "Application is healthy"  echo "Health check failed"
           
-          echo "Деплой завершен!"
-          echo "риложение доступно по: https://app.volkovvs.course.prafdin.ru"
+          echo "Docker Compose deployment completed!"
+          echo "App is available at: https://app.volkovvs.course.prafdin.ru"
         '
