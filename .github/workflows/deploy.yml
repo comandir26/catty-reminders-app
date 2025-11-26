@@ -41,28 +41,62 @@ jobs:
           set -e
           cd /home/vlad/catty-compose
           
+          echo "=== Deployment Info ==="
           echo "Current directory: $(pwd)"
           echo "Files in directory:"
           ls -la
           
+          echo "=== Docker Environment ==="
+          echo "Docker version:"
+          docker --version
+          echo "Docker Compose availability:"
+          docker compose version  echo "Docker Compose plugin not available"
+          docker-compose --version  echo "Docker-compose standalone not available"
+          
+          echo "=== Authentication ==="
           echo "Logging in to GitHub Container Registry..."
           echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
           
-          echo "Stopping existing stack..."
-          docker-compose down || true
+          echo "=== Pulling Latest Image ==="
+          docker pull ghcr.io/comandir26/catty-app:latest
           
-          echo "Starting new stack with Docker Compose..."
-          docker-compose up -d
+          echo "=== Stopping Existing Stack ==="
+          docker compose down  docker-compose down  echo "No stack to stop"
           
+          echo "=== Starting New Stack ==="
+          if docker compose version >/dev/null 2>&1; then
+            echo "Using Docker Compose Plugin..."
+            docker compose up -d
+          else
+            echo "Using Docker-Compose Standalone..."
+            docker-compose up -d
+          fi
+          
+          echo "=== Waiting for Services ==="
           echo "Waiting for services to start..."
           sleep 30
           
-          echo "Checking services status..."
-          docker-compose ps
+          echo "=== Service Status ==="
+          docker compose ps  docker-compose ps  echo "Cannot check service status"
+          
+          echo "=== Health Checks ==="
+          echo "Checking database health..."
+          docker exec catty-db mysqladmin ping -h localhost -u root -prootpassword  echo "Database health check failed"
           
           echo "Checking application health..."
-          curl -f http://localhost:8181 && echo "Application is healthy"  echo "Health check failed"
+          if curl -f http://localhost:8181; then
+            echo "Application is healthy"
+          else
+            echo "Application health check failed"
+            echo "Application logs:"
+            docker logs catty-app  echo "Cannot get application logs"
+          fi
+          
+          echo "=== Cleanup ==="
+          echo "Cleaning up unused images..."
+          docker image prune -f
           
           echo "Docker Compose deployment completed!"
           echo "App is available at: https://app.volkovvs.course.prafdin.ru"
+          echo "Check services with: docker compose ps || docker-compose ps"
         '
