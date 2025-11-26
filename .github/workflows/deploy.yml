@@ -20,7 +20,6 @@ jobs:
           set -e
           echo "Starting Docker container deployment..."
           
-          # Логинимся в GitHub Container Registry
           echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
           
           echo "Pulling latest Docker image..."
@@ -29,7 +28,7 @@ jobs:
           echo "Checking existing containers..."
           docker ps -a
           
-          echo "Stopping and removing existing container..."
+          echo "Removing existing container..."
           docker rm -f catty-container 2>/dev/null || echo "No container to remove"
           
           echo "Starting new container..."
