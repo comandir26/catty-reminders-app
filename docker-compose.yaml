@@ -18,7 +18,7 @@ services:
   app:
     image: ghcr.io/comandir26/catty-app:latest
     container_name: catty-app
-    depends_on:S
+    depends_on:
       - db
     restart: unless-stopped
     ports:

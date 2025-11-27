@@ -35,7 +35,7 @@ jobs:
             echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
             
             echo "=== Pulling Latest Images ==="
-            docker compose pull
+            docker compose pull --quiet
             
             echo "=== Starting Stack ==="
             docker compose up -d --remove-orphans
@@ -44,7 +44,7 @@ jobs:
             sleep 30
             
             echo "=== Checking Services ==="
-            docker compose ps
+            docker compose ps --all
             
             echo "=== Health Check ==="
             curl -f http://localhost:8181/ || echo "App might be still starting..."
