@@ -9,7 +9,7 @@ services:
       - "8181:8181"
     environment:
       - DATABASE_URL=mysql://user:password@db:3306/cattydb
-      - DB_HOST=db
+      - DB_HOST=localhost
       - DB_PORT=3306
       - DB_NAME=cattydb
       - DB_USER=user
@@ -37,6 +37,8 @@ services:
       MYSQL_USER: user
       MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
