@@ -4,12 +4,12 @@ name: catty-reminders
 
 services:
   db:
-    image: mariadb:11
+    image: mysql:5.7.36
     container_name: catty-db
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: mypass
-      MARIADB_DATABASE: catty_reminders
+      MYSQL_ROOT_PASSWORD: mypass
+      MYSQL_DATABASE: catty_reminders
     volumes:
       - db-data:/var/lib/mysql
     networks:
