@@ -17,6 +17,17 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+    - name: Clean before deploy
+      run: |
+        ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
+          echo "=== Cleaning unused Docker resources ==="
+          docker system prune -f
+          echo "=== Current disk space ==="
+          df -h
+          echo "=== Docker disk usage ==="
+          docker system df
+        '
+
     - name: Deploy with Docker Compose
       run: |
         echo "Starting Docker Compose deployment..."
