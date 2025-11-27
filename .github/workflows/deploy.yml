@@ -1,4 +1,4 @@
-name: Deployment
+name: CD - Deploy via Docker Compose
 
 on:
   release:
@@ -7,116 +7,48 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup SSH
-      uses: webfactory/ssh-agent@v0.8.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Clean before deploy
-      run: |
-        ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
-          echo "=== Cleaning unused Docker resources ==="
-          docker system prune -f
-          echo "=== Current disk space ==="
-          df -h
-          echo "=== Docker disk usage ==="
-          docker system df
-        '
+      - name: Deploy with Docker Compose
+        run: |
+          echo "Starting Docker Compose deployment..."
+          
+          ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
+            mkdir -p /home/vlad/catty-compose
+            cd /home/vlad/catty-compose
+          '
 
-    - name: Deploy with Docker Compose
-      run: |
-        echo "Starting Docker Compose deployment..."
-        
-        ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
-          set -e
-          echo "Creating project directory..."
-          mkdir -p /home/vlad/catty-compose
-          cd /home/vlad/catty-compose
-          echo "Directory created: $(pwd)"
-        '
-        
-        echo "Copying docker-compose.yml..."
-        scp -P 2200 -o StrictHostKeyChecking=no docker-compose.yml vlad@course.prafdin.ru:/home/vlad/catty-compose/
-        
-        if [ -d "db" ]; then
-          echo "Copying db directory..."
-          scp -P 2200 -o StrictHostKeyChecking=no -r db/ vlad@course.prafdin.ru:/home/vlad/catty-compose/
-        fi
-        
-        ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
-          set -e
-          cd /home/vlad/catty-compose
+          scp -P 2200 -o StrictHostKeyChecking=no docker-compose.yaml vlad@course.prafdin.ru:/home/vlad/catty-compose/
           
-          echo "=== Deployment Info ==="
-          echo "Current directory: $(pwd)"
-          echo "Files in directory:"
-          ls -la
-          
-          echo "=== Authentication ==="
-          echo "Logging in to GitHub Container Registry..."
-          echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
-          
-          echo "=== Pulling Latest Image ==="
-          docker pull ghcr.io/comandir26/catty-app:latest
-          
-          echo "=== Stopping Existing Stack ==="
-          docker compose down || docker-compose down || echo "No stack to stop"
-          
-          echo "=== Starting Database First ==="
-          if docker compose version >/dev/null 2>&1; then
-            docker compose up -d db
-          else
-            docker-compose up -d db
-          fi
-          
-          echo "=== Waiting for Database ==="
-          echo "Waiting for database to become healthy..."
-          for i in {1..30}; do
-            if docker logs catty-db 2>/dev/null | grep -q "ready for connections"; then
-              echo "Database is ready!"
-              break
-            fi
-            echo "Waiting for database... ($i/30)"
-            sleep 5
-          done
-          
-          echo "=== Starting Application ==="
-          if docker compose version >/dev/null 2>&1; then
-            docker compose up -d app
-          else
-            docker-compose up -d app
-          fi
-          
-          echo "=== Waiting for Application ==="
-          sleep 20
-          
-          echo "=== Service Status ==="
-          docker compose ps || docker-compose ps || echo "Cannot check service status"
-          
-          echo "=== Health Checks ==="
-          echo "Checking database..."
-          if docker exec catty-db mysqladmin ping -h localhost -u root -prootpassword 2>/dev/null; then
-            echo "Database is healthy"
-          else
-            echo "Database health check failed"
-            echo "Database logs:"
-            docker logs catty-db || echo "Cannot get database logs"
-          fi
-          
-          echo "Checking application..."
-          if curl -f http://localhost:8181 >/dev/null 2>&1; then
-            echo "Application is healthy"
-          else
-            echo "Application health check failed"
-            echo "Application logs:"
-            docker logs catty-app || echo "Cannot get application logs"
-          fi
-          
-          echo "Deployment completed!"
-          echo "App is available at: https://app.volkovvs.course.prafdin.ru"
-        '
+          ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
+            cd /home/vlad/catty-compose
+            
+            echo "=== Authentication ==="
+            echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
+            
+            echo "=== Pulling Latest Images ==="
+            docker compose pull
+            
+            echo "=== Starting Stack ==="
+            docker compose up -d --remove-orphans
+            
+            echo "=== Waiting for Services ==="
+            sleep 30
+            
+            echo "=== Checking Services ==="
+            docker compose ps
+            
+            echo "=== Health Check ==="
+            curl -f http://localhost:8181/ || echo "App might be still starting..."
+            
+            echo "Deployment completed!"
+            echo "App is available at: https://app.volkovvs.course.prafdin.ru"
+          '
