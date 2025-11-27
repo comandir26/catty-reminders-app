@@ -28,7 +28,7 @@ jobs:
           cd /home/vlad/catty-compose
           echo "Directory created: $(pwd)"
         '
-       
+        
         echo "Copying docker-compose.yml..."
         scp -P 2200 -o StrictHostKeyChecking=no docker-compose.yml vlad@course.prafdin.ru:/home/vlad/catty-compose/
         
@@ -46,13 +46,6 @@ jobs:
           echo "Files in directory:"
           ls -la
           
-          echo "=== Docker Environment ==="
-          echo "Docker version:"
-          docker --version
-          echo "Docker Compose availability:"
-          docker compose version || echo "Docker Compose plugin not available"
-          docker-compose --version || echo "Docker-compose standalone not available"
-          
           echo "=== Authentication ==="
           echo "Logging in to GitHub Container Registry..."
           echo "${{ secrets.DOCKER_PAT }}" | docker login ghcr.io -u comandir26 --password-stdin
@@ -63,28 +56,49 @@ jobs:
           echo "=== Stopping Existing Stack ==="
           docker compose down || docker-compose down || echo "No stack to stop"
           
-          echo "=== Starting New Stack ==="
+          echo "=== Starting Database First ==="
           if docker compose version >/dev/null 2>&1; then
-            echo "Using Docker Compose Plugin..."
-            docker compose up -d
+            docker compose up -d db
           else
-            echo "Using Docker-Compose Standalone..."
-            docker-compose up -d
+            docker-compose up -d db
           fi
           
-          echo "=== Waiting for Services ==="
-          echo "Waiting for services to start..."
-          sleep 30
+          echo "=== Waiting for Database ==="
+          echo "Waiting for database to become healthy..."
+          for i in {1..30}; do
+            if docker logs catty-db 2>/dev/null | grep -q "ready for connections"; then
+              echo "Database is ready!"
+              break
+            fi
+            echo "Waiting for database... ($i/30)"
+            sleep 5
+          done
+          
+          echo "=== Starting Application ==="
+          if docker compose version >/dev/null 2>&1; then
+            docker compose up -d app
+          else
+            docker-compose up -d app
+          fi
+          
+          echo "=== Waiting for Application ==="
+          sleep 20
           
           echo "=== Service Status ==="
           docker compose ps || docker-compose ps || echo "Cannot check service status"
           
           echo "=== Health Checks ==="
-          echo "Checking database health..."
-          docker exec catty-db mysqladmin ping -h localhost -u root -prootpassword || echo "Database health check failed"
+          echo "Checking database..."
+          if docker exec catty-db mysqladmin ping -h localhost -u root -prootpassword 2>/dev/null; then
+            echo "Database is healthy"
+          else
+            echo "Database health check failed"
+            echo "Database logs:"
+            docker logs catty-db || echo "Cannot get database logs"
+          fi
           
-          echo "Checking application health..."
-          if curl -f http://localhost:8181; then
+          echo "Checking application..."
+          if curl -f http://localhost:8181 >/dev/null 2>&1; then
             echo "Application is healthy"
           else
             echo "Application health check failed"
@@ -92,11 +106,6 @@ jobs:
             docker logs catty-app || echo "Cannot get application logs"
           fi
           
-          echo "=== Cleanup ==="
-          echo "Cleaning up unused images..."
-          docker image prune -f
-          
-          echo "Docker Compose deployment completed!"
+          echo "Deployment completed!"
           echo "App is available at: https://app.volkovvs.course.prafdin.ru"
-          echo "Check services with: docker compose ps || docker-compose ps"
         '
