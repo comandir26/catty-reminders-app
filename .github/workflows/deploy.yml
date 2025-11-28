@@ -21,14 +21,14 @@ jobs:
         run: |
           echo "Starting Docker Compose deployment..."
           
-          ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
+          ssh -p 2900 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
             mkdir -p /home/vlad/catty-compose
             cd /home/vlad/catty-compose
           '
 
-          scp -P 2200 -o StrictHostKeyChecking=no docker-compose.yaml vlad@course.prafdin.ru:/home/vlad/catty-compose/
+          scp -P 2900 -o StrictHostKeyChecking=no docker-compose.yml vlad@course.prafdin.ru:/home/vlad/catty-compose/
           
-          ssh -p 2200 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
+          ssh -p 2900 -o StrictHostKeyChecking=no vlad@course.prafdin.ru '
             cd /home/vlad/catty-compose
             
             echo "=== Authentication ==="
